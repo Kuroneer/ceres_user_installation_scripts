@@ -4,7 +4,7 @@ if [[ "$EUID" -eq 0 ]]; then
   echo "Do not run as root"
   exit 1
 fi
-TARGET=${1:-"$HOME/opt"}
+TARGET=${1:-"$HOME/opt/"}
 mkdir -p "$TARGET"
 echo "Installing to $TARGET"
 
@@ -23,20 +23,25 @@ fi
   TEMPDIR="$(mktemp -d)"
   echo "Extracting autofirma to $TEMPDIR"
   cd $TEMPDIR
-  wget -O autofirma.zip https://estaticos.redsara.es/comunes/autofirma/currentversion/AutoFirma_Linux_Debian.zip
-  sha256sum --check <<< "447151616db602351071b51e8a7ef01aab6801742bc29ac200208ab913c14444 autofirma.zip"
+  curl --output autofirma.zip https://estaticos.redsara.es/comunes/autofirma/currentversion/AutoFirma_Linux_Debian.zip
+  sha256sum --check <<< "5b0660a9e1fbcba6aa81c8142429084e72f9d2b306c6bc1c73b7c860e6c81ab9 autofirma.zip"
   unzip autofirma.zip
-  ar x AutoFirma_1_8_0.deb
-  tar --use-compress-program=unzstd -xf data.tar.zst
-  java -jar usr/lib/AutoFirma/AutoFirmaConfigurador.jar
-  if [ -f "usr/lib/AutoFirma/script.sh" ]; then
-    chmod +x usr/lib/AutoFirma/script.sh
-    usr/lib/AutoFirma/script.sh
-  fi
+  ar x AutoFirma_1_8_2.deb
+  tar -xzf data.tar.gz
+
   # Not installing the CA system wide
-  mkdir -p "$TARGET/AutoFirma"
-  chmod -x "$TEMPDIR/usr/lib/AutoFirma/AutoFirma.jar"
-  mv "$TEMPDIR/usr/lib/AutoFirma/AutoFirma.jar" "$TARGET/AutoFirma"
+  mkdir -p "$TARGET"
+  mv usr/lib/AutoFirma $TARGET
+  cd "$TARGET/AutoFirma"
+
+  java -jar ./AutoFirmaConfigurador.jar
+  SCRIPT="./script.sh"
+  if [ -f "$SCRIPT" ]; then
+    chmod +x "$SCRIPT"
+    "$SCRIPT"
+    rm "$SCRIPT"
+  fi
+  chmod -x ./AutoFirma.jar
   rm -rf "$TEMPDIR"
 )
 
@@ -67,12 +72,12 @@ done
 cat > "$HOME/.local/share/applications/afirma.desktop" <<EOF
 [Desktop Entry]
 Encoding=UTF-8
-Version=1.8.0-custom
+Version=1.8.2-custom
 Name=AutoFirma
 Type=Application
 Terminal=false
 Categories=Office;Utilities;Signature;Java
-Exec=$AFIRMA_LAUNCHER %u
+Exec=$AFIRMA_LAUNCHER %U
 GenericName=Herramienta de firma
 Comment=Herramienta de firma
 MimeType=x-scheme-handler/afirma;
